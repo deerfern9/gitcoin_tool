@@ -14,6 +14,14 @@ headers = {
     'Content-Type': 'application/json',
 }
 
+stamps_headers = {
+    'authority': 'api.scorer.gitcoin.co',
+    'accept': 'application/json, text/plain, */*',
+    'origin': 'https://passport.gitcoin.co',
+    'referer': 'https://passport.gitcoin.co/',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+}
+
 json_data = {
     'address': '',
     'community': 'Deprecated',
@@ -57,18 +65,17 @@ def check_wallet(address, private):
     all_in_one = f'{private};{address};{score};'
 
     try:
-        items = requests.get(f'https://api.scorer.gitcoin.co/registry/stamps/{address}', params=params, headers=headers).json()['items']
+        stamps = requests.get('https://api.scorer.gitcoin.co/ceramic-cache/stamp', params={'address': address},
+                              headers=stamps_headers).json()['stamps']
     except Exception as e:
         print(f'Rate limit error: 125 requests per 15 min. (https://docs.passport.gitcoin.co/building-with-passport/scorer-api/endpoint-definition#rate-limits)')
         print('Waiting 16 min.')
         time.sleep(16 * 60)
         check_wallet(address, private)
-        pass
+        return None
 
-    for item in items:
-        stamp = item['credential']['credentialSubject']['provider']
-        # write_to_file(f'{stamp}.txt', f'{private};{address};{stamp}')
-        all_in_one += f'{stamp}:'
+    for stamp in stamps:
+        all_in_one += f'{stamp["provider"]}:'
 
     write_to_file('all in one.txt', all_in_one[:-1])
 
